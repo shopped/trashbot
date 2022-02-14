@@ -1,11 +1,5 @@
 import maestro
 import time
-import signal
-
-def signal_handler(sig, frame):
-    print("Juggling over")
-    servo.setTarget(5, 6000)
-    servo.close()
 
 def turn(s):
    for i in range(6000, 5550, -50):
@@ -26,9 +20,11 @@ servo = maestro.Controller(ttyStr="/dev/ttyACM0", device=0x0c)
 servo.setSpeed(5, 0)
 servo.setAccel(5, 0)
 time.sleep(.5)
-signal.signal(signal.SIGTERM, signal_handler)
-signal.signal(signal.SIGINT, signal_handler)
-
-while True:
-    turn(servo)
-    time.sleep(.05)
+turn(servo)
+time.sleep(.05)
+turn(servo)
+time.sleep(.05)
+turn(servo)
+time.sleep(.05)
+turn(servo)
+servo.close()
