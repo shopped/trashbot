@@ -16,7 +16,7 @@ def one():
 
 def all():
 	print("Testing pins")
-	pins = [23, 24, 25, 19]
+	pins = [23, 24, 25, 18]
 	buttons = []
 
 	for p in pins:
