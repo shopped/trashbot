@@ -1,7 +1,7 @@
 from gpiozero import LED
 from time import sleep
 
-pins = [5, 6, 13, 26]
+pins = [5, 13, 11, 6]
 
 leds = []
 for p in pins:

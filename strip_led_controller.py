@@ -1,4 +1,6 @@
 import time
+import random
+import math
 import board
 import neopixel
 import asyncio
@@ -32,6 +34,10 @@ def wheel(pos):
 
 rainbow_active = False
 prompt_active = False
+following_active = False
+searching_active = False
+paused_active = False
+waiting_active = False
 
 async def rainbow_cycle(wait):
     for j in range(255):
@@ -51,6 +57,76 @@ async def rainbow():
     while rainbow_active:
         await rainbow_cycle(0.007)
     print("done rainbow")
+
+async def following():
+    while following_active:
+        random_wait = random.randint(500, 9000)
+        random_dur = random.randint(50, 300)
+        random_pause = random.randint(50, 150)
+        for i in range(8):
+            if (following_active == False):
+                return
+            pixels[i] = (0,0,0)
+            pixels[15-i] = (0,0,0)
+            pixels.show()
+            await asyncio.sleep(random_dur / 1000 / 16)
+        if (following_active == False):
+            return
+        time.sleep(random_pause / 1000)
+        for i in range(8):
+            if (following_active == False):
+                return
+            pixels[8+i] = (0,255,0)
+            pixels[7-i] = (0,255,0)
+            pixels.show()
+            await asyncio.sleep(random_dur / 1000 / 16)
+        await asyncio.sleep(random_wait / 1000)
+    print("done following")
+
+# prompt, rainbow, following, searching, paused, waiting, trash, recycle, unknown
+async def searching():
+    g = (0,0,255)
+    x = (0,0,0)
+    while searching_active:
+        pixels[0] = g
+        pixels.show()
+        await asyncio.sleep(1 / 32)
+        for i in range(29):
+            if i < 15:
+                pixels[i] = g
+                pixels[i - 1] = x
+            else:
+                pixels[30 - i] = x
+                pixels[29 - i] = g
+            pixels.show()
+            await asyncio.sleep(1 / 32)
+            if (searching_active == False):
+                return
+        pixels[0] = x
+        pixels.show()
+        await asyncio.sleep(1 / 32)
+
+async def paused():
+    while paused_active:
+        for t in range(200):
+            v = (math.sin(2*math.pi*t/200)+1)*50
+            if (paused_active == False):
+                return
+            for i in range(16):
+                pixels[i] = (int(v),0,0)
+            pixels.show()
+            await asyncio.sleep(.02)
+
+async def waiting():
+    while waiting_active:
+        for t in range(200):
+            v = (math.sin(2*math.pi*t/200)+1)*80
+            if (waiting_active == False):
+                return
+            for i in range(16):
+                pixels[i] = (int(v),int(v),int(v))
+            pixels.show()
+            await asyncio.sleep(.02)
 
 async def prompt():
     b = True
@@ -104,22 +180,41 @@ def unknown():
             pixels.show()
             time.sleep(.05)
 
+# prompt, rainbow, following, searching, paused, waiting, trash, recycle, unknown
 async def handler(websocket):
     global rainbow_active 
     global prompt_active 
+    global following_active
+    global searching_active
+    global paused_active
+    global waiting_active
     async for message in websocket:
         print(message)
         rainbow_active = False
-        prompt_active= False
+        prompt_active = False
+        following_active = False
+        searching_active = False
+        paused_active = False
+        waiting_active = False
         clear()
         if (message == "prompt"):
             prompt_active = True
             asyncio.ensure_future(prompt())
-        elif (message == "rainbow"):
+        elif (message == "rainbow"): #processing
             rainbow_active = True
             asyncio.ensure_future(rainbow())
-        #elif (message == "paused"):
-        #elif (message == "waiting"):
+        elif (message == "following"):
+            following_active = True
+            asyncio.ensure_future(following())
+        elif (message == "searching"):
+            searching_active = True
+            asyncio.ensure_future(searching())
+        elif (message == "paused"): #in move mode
+            paused_active = True
+            asyncio.ensure_future(paused())
+        elif (message == "waiting"): #for trash
+            waiting_active = True
+            asyncio.ensure_future(waiting())
         elif (message == "trash"):
             trash()
         elif (message == "recycle"):
@@ -128,7 +223,7 @@ async def handler(websocket):
             unknown()
         else:
             print("Unknown message")
-        await asyncio.sleep(0)
+        # await asyncio.sleep(0)
         print("Done handling")
 
 async def main():

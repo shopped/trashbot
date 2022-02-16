@@ -1,4 +1,4 @@
-from gpiozero import Button
+from gpiozero import Button, LED
 import time
 
 # main loop listens for button input
@@ -11,11 +11,22 @@ input_buttons = []
 for p in input_pins:
     input_buttons.append(Button(p))
 
-state = "WAITING" # WAITING -> BUSY -> PROMPT -> BUSY -> WAITING
+button_light_pins = [5, 13, 11, 6]
+button_lights = []
+for p in button_light_pins:
+    button_lights.append(LED(p))
 
+state = "WAITING" # WAITING -> BUSY -> PROMPT -> BUSY -> WAITING
+current_index = 0
 print("Starting main loop...")
 
-current_index = 0
+def back_buttons_on():
+    button_lights[2].on()
+    button_lights[3].on()
+
+def back_buttons_off():
+    button_lights[2].off()
+    button_lights[3].off()
 
 while True:
     input_state = []
@@ -32,14 +43,21 @@ while True:
             print("Juggling Script and Video")
             state = "PROMPT"
             print("Setting state to PROMPT, Prompt Socket Message")
+            back_buttons_on()
     elif (state == "PROMPT"):
         if (unknown):
             print("Unknown message, run trash")
+            print("Will flash both to confirm")
             state = "WAITING"
         elif(trash):
             print("Trash message, run trash")
+            print("Will flash trash to confirm")
             state = "WAITING"
         elif(recycle):
             print("Recycle message, run recycle")
+            print("Will flash recycle to confirm")
             state = "WAITING"
+        if (state == "WAITING"):
+            print("Buttons off immediately, temporarily")
+            back_buttons_off()
     time.sleep(.1)

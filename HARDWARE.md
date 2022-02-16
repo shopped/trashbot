@@ -8,9 +8,9 @@ Right side…Red, sig
 
 Left side…Yellow, lights
 5 - Top/Front, Away from Body
+13 - Top/Front, Close to Body
+11 - Bottom/Back, Away from Body
 6 - Bottom/Back, Close to Body
-11 - Top/Front, Close to Body 
-26 - Top/Front, Close to Body
 
 MOTOR DRIVER
 
