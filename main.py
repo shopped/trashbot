@@ -1,4 +1,5 @@
 from gpiozero import Button, LED
+from collections import deque
 import time
 import os
 import subprocess
@@ -11,6 +12,7 @@ import websockets
 
 input_pins = [18, 24, 25, 23] # go, stop, recycling, trash
 input_buttons = []
+input_buffer = deque(list(map(lambda x: [False, False], range(5))))
 for p in input_pins:
     input_buttons.append(Button(p))
 
@@ -80,18 +82,28 @@ while True:
     for i in range(len(input_buttons)):
         input_state.append(input_buttons[i].is_pressed)
     sense_trash_simulation = input_state[0] or input_state[1]
-    unknown = input_state[2] and input_state[3]
-    recycle = input_state[2]
-    trash = input_state[3]
+    input_buffer.append([input_state[2], input_state[3]])
+    elem = input_buffer.popleft()
     if (state == "WAITING"):
         if sense_trash_simulation:
-            print("Rainbow LEDs Message")
             asyncio.get_event_loop().run_until_complete(update_leds("rainbow"))
             generate_images()
             state = "PROMPT"
             asyncio.get_event_loop().run_until_complete(update_leds("prompt"))
             back_buttons_on()
     elif (state == "PROMPT"):
+        unknown = False
+        trash = False
+        recycle = False
+        if (elem[0] or elem[1]):# .5s to process input for simultaenous press
+            b1 = True in list(map(lambda x: x[0], input_buffer))
+            b2 = True in list(map(lambda x: x[1], input_buffer))
+            if (b1 and b2):
+                unknown = True
+            elif(elem[0]):
+                recycle = True
+            elif(elem[1]):
+                trash = True
         if (unknown):
             button_leds(23).on()
             button_leds(25).on()
