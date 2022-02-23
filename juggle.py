@@ -1,11 +1,13 @@
 import maestro
 import time
 import signal
+import sys
 
 def signal_handler(sig, frame):
     print("Juggling over")
     servo.setTarget(5, 6000)
     servo.close()
+    sys.exit()
 
 def turn(s):
    for i in range(6000, 5550, -50):

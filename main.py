@@ -8,7 +8,6 @@ import websockets
 
 # main loop listens for button input
 # TODO implement following mode, top/bottom swap
-# TODO detect webcam item insert
 
 input_pins = [18, 24, 25, 23] # go, stop, recycling, trash
 input_buttons = []
@@ -23,8 +22,9 @@ for p in button_light_pins:
 
 claw_pin = 26
 input_claw = Button(claw_pin)
+detect_trash = None
 
-state = "WAITING"
+state = "FOLLOWING"
 # BottomMode - SEARCHING <-> FOLLOWING <-> PAUSED
 # Swap between BottomMode and TopMode by removing claw
 # TopMode - WAITING -> BUSY -> PROMPT -> BUSY -> WAITING
@@ -84,12 +84,21 @@ while True:
     sense_trash_simulation = input_state[0] or input_state[1]
     input_buffer.append([input_state[2], input_state[3]])
     elem = input_buffer.popleft()
-    if (state == "WAITING"):
-        if sense_trash_simulation:
+    if (state == "FOLLOWING"):
+        if (input_claw.is_pressed is False):
+            asyncio.get_event_loop().run_until_complete(update_leds("waiting"))
+            detect_trash = subprocess.Popen("/home/pi/trashbot/v4l2cxx/build/exitondiff")
+            state = "WAITING"
+    elif (state == "WAITING"):
+        if (input_claw.is_pressed):
+            asyncio.get_event_loop().run_until_complete(update_leds("following"))
+            detect_trash.terminate()
+            state = "FOLLOWING"
+        elif (detect_trash.poll() == 0):
             asyncio.get_event_loop().run_until_complete(update_leds("rainbow"))
             generate_images()
-            state = "PROMPT"
             asyncio.get_event_loop().run_until_complete(update_leds("prompt"))
+            state = "PROMPT"
             back_buttons_on()
     elif (state == "PROMPT"):
         unknown = False
@@ -129,5 +138,6 @@ while True:
             state = "WAITING"
         if (state == "WAITING"):
             print("Buttons off immediately, temporarily")
+            asyncio.get_event_loop().run_until_complete(update_leds("waiting"))
             back_buttons_off()
     time.sleep(.1)
