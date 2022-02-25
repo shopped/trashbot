@@ -62,7 +62,7 @@ def generate_images():
     index = make_img_dir()
     print("Created new directory {}".format(index))
     juggle = subprocess.Popen(["python3","juggle.py"])
-    os.system("ffmpeg -f video4linux2 -s 640x480 -ss 0:0:1 -i /dev/video0 -vf fps=4 -frames 20 /home/pi/code/data/{}/%02d.jpg".format(index))
+    os.system("ffmpeg -f video4linux2 -s 640x480 -ss 0:0:1 -i /dev/video0 -vf fps=4 -frames 20 /home/pi/trashbot/data/{}/%02d.jpg".format(index))
     juggle.terminate()
 
 def label_images(type):
@@ -77,6 +77,7 @@ def label_images(type):
         with open(label_path, 'w') as f:
             f.write(new_entry)
 
+asyncio.get_event_loop().run_until_complete(update_leds("following"))
 while True:
     input_state = []
     for i in range(len(input_buttons)):

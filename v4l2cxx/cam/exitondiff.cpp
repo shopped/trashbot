@@ -19,6 +19,7 @@ void callback_stdout_pipe(uint8_t *p_data, size_t len) {
                 std::exit(0);
             }
         }
+        std::copy(std::begin(outBuff), std::end(outBuff), std::begin(lastBuff));
     }
     counter++;
 }
