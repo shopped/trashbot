@@ -62,7 +62,7 @@ def generate_images():
     index = make_img_dir()
     print("Created new directory {}".format(index))
     juggle = subprocess.Popen(["python3","juggle.py"])
-    os.system("ffmpeg -f video4linux2 -s 640x480 -ss 0:0:1 -i /dev/video0 -vf fps=4 -frames 20 /home/pi/trashbot/data/{}/%02d.jpg".format(index))
+    os.system("ffmpeg -f video4linux2 -s 640x480 -ss 0:0:1 -i /dev/video0 -vf fps=4 -frames 20 -filter_complex "crop=224:224:48:16" /home/pi/trashbot/data/{}/%02d.jpg".format(index))
     juggle.terminate()
 
 def label_images(type):
