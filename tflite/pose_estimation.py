@@ -1,98 +1,78 @@
 """Main script to run pose classification and pose estimation."""
 import sys
 import time
-import signal
 
 import cv2
-from ml import Movenet
+from tflite.ml import Movenet
 
 TESTING = False
 
-def signal_handler(sig, frame):
-  cap.release()
-  sys.exit()
+class Messenger:
 
-def run(estimation_model: str, tracker_type: str, classification_model: str,
-        label_file: str, camera_id: int, width: int, height: int) -> None:
-  global cap
+  def __init__(self):
+    self.pose_detector = Movenet('movenet_lightning')
 
-  if estimation_model in ['movenet_lightning', 'movenet_thunder']:
-    pose_detector = Movenet(estimation_model)
-  else:
-    sys.exit('ERROR: Model is not supported.')
+    # Variables to calculate FPS
+    self.fps_avg_frame_count = 10
+    self.counter, self.fps = 0, 0
+    self.start_time = time.time()
 
-  # Variables to calculate FPS
-  fps_avg_frame_count = 10
-  counter, fps = 0, 0
-  start_time = time.time()
+    # Start capturing video input from the camera
+    self.cap = cv2.VideoCapture(0)
+    self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+    self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
 
-  # Start capturing video input from the camera
-  cap = cv2.VideoCapture(camera_id)
-  cap.set(cv2.CAP_PROP_FRAME_WIDTH, width)
-  cap.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
+  def close(self):
+    self.cap.release()
 
-  signal.signal(signal.SIGTERM, signal_handler)
-  signal.signal(signal.SIGINT, signal_handler)
+  def get_message(self):
+    # Continuously capture images from the camera and run inference
+    if self.cap.isOpened():
+      success, image = self.cap.read()
+      if not success:
+        sys.exit(
+            'ERROR: Unable to read from webcam. Please verify your webcam settings.'
+        )
 
+      self.counter += 1
+      image = cv2.flip(image, 1)
 
-  # Continuously capture images from the camera and run inference
-  while cap.isOpened():
-    success, image = cap.read()
-    if not success:
-      sys.exit(
-          'ERROR: Unable to read from webcam. Please verify your webcam settings.'
-      )
+      person = self.pose_detector.detect(image)
 
-    counter += 1
-    image = cv2.flip(image, 1)
+      # Calculate the FPS
+      if self.counter % self.fps_avg_frame_count == 0:
+        end_time = time.time()
+        self.fps = self.fps_avg_frame_count / (end_time - self.start_time)
+        self.start_time = time.time()
 
-    if estimation_model == 'movenet_multipose':
-      list_persons = pose_detector.detect(image)
-    else:
-      list_persons = [pose_detector.detect(image)]
+      # Show the FPS
+      fps_text = 'FPS = ' + str(int(self.fps))
+      if (TESTING):
+          print(fps_text)
 
+      # Main Logic
+      torso_confidence = sum(list(map(lambda x: person.keypoints[x].score, [5, 6, 11, 12]))) / 4
+      midpoint_x = sum(list(map(lambda x: person.keypoints[x].coordinate.x, [5, 6, 11, 12]))) / 4
+      dist_x = (midpoint_x - 320) / 320
+      torso_size = person.keypoints[11].coordinate.y + person.keypoints[12].coordinate.y - person.keypoints[5].coordinate.y - person.keypoints[6].coordinate.y
+      dist_y = torso_size / 2 / 480
 
-    # Calculate the FPS
-    if counter % fps_avg_frame_count == 0:
-      end_time = time.time()
-      fps = fps_avg_frame_count / (end_time - start_time)
-      start_time = time.time()
+      if (TESTING):
+        print("Confidence: {}, dist_x: {}, dist_y: {}".format(torso_confidence, dist_x, dist_y))
 
-    # Show the FPS
-    fps_text = 'FPS = ' + str(int(fps))
-    if (TESTING):
-        print(fps_text)
-
-    # Main Logic
-    person = list_persons[0]
-    torso_confidence = sum(list(map(lambda x: person.keypoints[x].score, [5, 6, 11, 12]))) / 4
-    midpoint_x = sum(list(map(lambda x: person.keypoints[x].coordinate.x, [5, 6, 11, 12]))) / 4
-    dist_x = (midpoint_x - 320) / 320
-    torso_size = person.keypoints[11].coordinate.y + person.keypoints[12].coordinate.y - person.keypoints[5].coordinate.y - person.keypoints[6].coordinate.y
-    dist_y = torso_size / 2 / 480
-
-    # Return Detection
-    if (torso_confidence < .5):
-      print("NO PERSON")
-    elif (dist_y > .28):
-      print("CLOSE")
-    elif (dist_y < .22):
-      print("FAR")
-    else:
-      if (dist_x > .3):
-        print("LEFT")
-      elif (dist_x < -.3):
-        print("RIGHT")
+      # Return Detection
+      if (torso_confidence < .5):
+        return "NO PERSON"
+      elif (dist_y > .28):
+        return "CLOSE"
+      elif (dist_y < .22):
+        return "FAR"
       else:
-        print("CENTER")
+        if (dist_x > .3):
+          return "LEFT"
+        elif (dist_x < -.3):
+          return "RIGHT"
+        else:
+          return "CENTER"
 
-    if (TESTING):
-      print("Confidence: {}, dist_x: {}, dist_y: {}".format(torso_confidence, dist_x, dist_y))
-
-
-def main():
-  run("movenet_lightning", None, None, None, 0, 640, 480)
-
-
-if __name__ == '__main__':
-  main()
+    return "CAMERA CLOSED"

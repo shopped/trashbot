@@ -17,9 +17,9 @@ import os
 from typing import Dict, List
 
 import cv2
-from data import BodyPart
-from data import Person
-from data import person_from_keypoints_with_scores
+from tflite.data import BodyPart
+from tflite.data import Person
+from tflite.data import person_from_keypoints_with_scores
 import numpy as np
 
 # pylint: disable=g-import-not-at-top

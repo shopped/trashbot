@@ -13,4 +13,4 @@
 # limitations under the License.
 """Module contains pose estimation and pose classification implementations."""
 
-from ml.movenet import Movenet
+from tflite.ml.movenet import Movenet
