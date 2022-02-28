@@ -15,7 +15,7 @@ void callback_stdout_pipe(uint8_t *p_data, size_t len) {
                 diff += std::abs(outBuff[i] - lastBuff[i]);
             }
             // std::cout << "Avg Diff: " << diff / 921600 << std::endl;
-            if ((diff / 921600) > 10) {
+            if ((diff / 921600) > 15) {
                 std::exit(0);
             }
         }

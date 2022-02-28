@@ -5,9 +5,18 @@ import os
 import subprocess
 import asyncio
 import websockets
+import signal
+import sys
 
 # main loop listens for button input
 # TODO implement following mode, top/bottom swap
+
+def signal_handler(sig, frame):
+    asyncio.get_event_loop().run_until_complete(update_leds("clear"))
+    sys.exit()
+
+signal.signal(signal.SIGTERM, signal_handler)
+signal.signal(signal.SIGINT, signal_handler)
 
 input_pins = [18, 24, 25, 23] # go, stop, recycling, trash
 input_buttons = []
@@ -62,27 +71,26 @@ def generate_images():
     index = make_img_dir()
     print("Created new directory {}".format(index))
     juggle = subprocess.Popen(["python3","juggle.py"])
-    os.system("ffmpeg -f video4linux2 -s 640x480 -ss 0:0:1 -i /dev/video0 -vf fps=4 -frames 20 -filter_complex "crop=224:224:48:16" /home/pi/trashbot/data/{}/%02d.jpg".format(index))
+    os.system("ffmpeg -f video4linux2 -s 320x240 -ss 0:0:1 -i /dev/video0 -frames 20 -filter_complex \"crop=224:224:48:16,fps=4\" /home/pi/trashbot/data/{}/%02d.jpg".format(index))
     juggle.terminate()
 
 def label_images(type):
-    time_string = strftime("%a, %d %b %Y %H:%M:%S +0000", gmtime())
+    time_string = time.strftime("%a, %d %b %Y %H:%M:%S +0000", time.gmtime())
     new_entry = "{} {} {}".format(current_index, type, time_string) # later COCO, OCR, and GPS
     label_path = os.getcwd() + "/data/labels.txt"
     if (os.path.exists(label_path)):
         with open(label_path, 'a') as f:
-            f.write(new_entry)
+            f.write(new_entry + '\n')
     else:
         print("ERROR: labels.txt cannot be found, creating {}".format(label_path))
         with open(label_path, 'w') as f:
-            f.write(new_entry)
+            f.write(new_entry + '\n')
 
 asyncio.get_event_loop().run_until_complete(update_leds("following"))
 while True:
     input_state = []
     for i in range(len(input_buttons)):
         input_state.append(input_buttons[i].is_pressed)
-    sense_trash_simulation = input_state[0] or input_state[1]
     input_buffer.append([input_state[2], input_state[3]])
     elem = input_buffer.popleft()
     if (state == "FOLLOWING"):
@@ -114,28 +122,29 @@ while True:
                 recycle = True
             elif(elem[1]):
                 trash = True
+            input_buffer = deque(list(map(lambda x: [False, False], range(5))))
         if (unknown):
-            button_leds(23).on()
-            button_leds(25).on()
+            button_lights[2].on()
+            button_lights[3].on()
             asyncio.get_event_loop().run_until_complete(update_leds("unknown"))
             os.system("python3 trash.py");
             label_images("unknown")
-            button_leds(23).off()
-            button_leds(25).off()
-            state = "WAITING"
-        elif(trash):
-            button_leds(23).on()
-            asyncio.get_event_loop().run_until_complete(update_leds("trash"))
-            os.system("python3 trash.py");
-            label_images("trash")
-            button_leds(23).off()
+            button_lights[2].off()
+            button_lights[3].off()
             state = "WAITING"
         elif(recycle):
-            button_leds(25).on()
+            button_lights[2].on()
             asyncio.get_event_loop().run_until_complete(update_leds("recycle"))
             os.system("python3 recycle.py");
             label_images("recycle")
-            button_leds(25).off()
+            button_lights[2].off()
+            state = "WAITING"
+        elif(trash):
+            button_lights[3].on()
+            asyncio.get_event_loop().run_until_complete(update_leds("trash"))
+            os.system("python3 trash.py");
+            label_images("trash")
+            button_lights[3].off()
             state = "WAITING"
         if (state == "WAITING"):
             print("Buttons off immediately, temporarily")
