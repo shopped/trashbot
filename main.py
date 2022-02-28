@@ -1,5 +1,6 @@
 from gpiozero import Button, LED
 from collections import deque
+from adafruit_motor import motor
 import time
 import os
 import subprocess
@@ -7,9 +8,10 @@ import asyncio
 import websockets
 import signal
 import sys
+import board
+import pwmio
 
-# main loop listens for button input
-# TODO implement following mode, top/bottom swap
+import tflite
 
 def signal_handler(sig, frame):
     asyncio.get_event_loop().run_until_complete(update_leds("clear"))
@@ -33,12 +35,39 @@ claw_pin = 26
 input_claw = Button(claw_pin)
 detect_trash = None
 
-state = "FOLLOWING"
+state = "WAITING"
 # BottomMode - SEARCHING <-> FOLLOWING <-> PAUSED
-# Swap between BottomMode and TopMode by removing claw
 # TopMode - WAITING -> BUSY -> PROMPT -> BUSY -> WAITING
 current_index = ""
 print("Starting main loop...")
+
+mr = motor.DCMotor(pwmio.PWMOut(Board.D2), pwmio.PWMOut(board.D3))
+ml = motor.DCMotor(pwmio.PWMOut(Board.D22), pwmio.PWMOut(board.D27))
+speed = 0.5
+unspeed = -1 * speed
+
+def stop():
+    mr.throttle = 0
+    ml.throttle = 0
+
+def forward():
+    mr.throttle = speed
+    ml.throttle = speed
+    time.sleep(.3)
+    stop()
+    
+
+def left():
+    mr.throttle = speed
+    ml.throttle = unspeed
+    time.sleep(.3)
+    stop()
+
+def right():
+    mr.throttle = unspeed
+    ml.throttle = speed
+    time.sleep(.3)
+    stop()
 
 async def update_leds(msg):
     async with websockets.connect('ws://192.168.1.10:1337') as ws:
@@ -86,6 +115,10 @@ def label_images(type):
         with open(label_path, 'w') as f:
             f.write(new_entry + '\n')
 
+last_front_cam_message = None
+front_cam_messenger = None
+front_button_lights = False
+
 asyncio.get_event_loop().run_until_complete(update_leds("following"))
 while True:
     input_state = []
@@ -96,12 +129,45 @@ while True:
     if (state == "FOLLOWING"):
         if (input_claw.is_pressed is False):
             asyncio.get_event_loop().run_until_complete(update_leds("waiting"))
+            if (front_cam_messenger is not None):
+                front_cam_messenger.close()
+                front_cam_messenger = None
             detect_trash = subprocess.Popen("/home/pi/trashbot/v4l2cxx/build/exitondiff")
             state = "WAITING"
+        elif input_state[0]:
+            asyncio.get_event_loop().run_until_complete(update_leds("paused"))
+            state = "PAUSED"
+            last_front_cam_message = None
+        else:
+            msg = front_cam_messenger.get_message()
+            if (last_front_cam_message == msg):
+                last_front_cam_message = None
+                if (msg == "LEFT"):
+                    left()
+                elif (msg == "RIGHT"):
+                    right()
+                elif (msg == "FAR"):
+                    forward()
+                if (msg == "CLOSE"):
+                    if (front_button_lights == False):
+                        front_button_lights = True
+                        button_lights[0].on()
+                else:
+                    if (front_button_lights == True):
+                        front_button_lights = False
+                        button_lights[0].off()
+            else:
+                last_front_cam_message = msg
+    elif (state == "PAUSED"):
+        if input_state[1]:
+            asyncio.get_event_loop().run_until_complete(update_leds("following"))
+            state = "FOLLOWING"
     elif (state == "WAITING"):
         if (input_claw.is_pressed):
             asyncio.get_event_loop().run_until_complete(update_leds("following"))
             detect_trash.terminate()
+            front_cam_messenger = tflite.Messenger()
+            last_front_cam_message = None
             state = "FOLLOWING"
         elif (detect_trash.poll() == 0):
             asyncio.get_event_loop().run_until_complete(update_leds("rainbow"))
