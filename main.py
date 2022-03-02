@@ -41,8 +41,8 @@ state = "WAITING"
 current_index = ""
 print("Starting main loop...")
 
-mr = motor.DCMotor(pwmio.PWMOut(Board.D2), pwmio.PWMOut(board.D3))
-ml = motor.DCMotor(pwmio.PWMOut(Board.D22), pwmio.PWMOut(board.D27))
+mr = motor.DCMotor(pwmio.PWMOut(board.D2), pwmio.PWMOut(board.D3))
+ml = motor.DCMotor(pwmio.PWMOut(board.D22), pwmio.PWMOut(board.D27))
 speed = 0.5
 unspeed = -1 * speed
 
@@ -100,7 +100,7 @@ def generate_images():
     index = make_img_dir()
     print("Created new directory {}".format(index))
     juggle = subprocess.Popen(["python3","juggle.py"])
-    os.system("ffmpeg -f video4linux2 -s 320x240 -ss 0:0:1 -i /dev/video0 -frames 20 -filter_complex \"crop=224:224:48:16,fps=4\" /home/pi/trashbot/data/{}/%02d.jpg".format(index))
+    os.system("ffmpeg -f video4linux2 -s 320x240 -ss 0:0:1 -i /dev/video1 -frames 20 -filter_complex \"crop=224:224:48:16,fps=4\" /home/pi/trashbot/data/{}/%02d.jpg".format(index))
     juggle.terminate()
 
 def label_images(type):

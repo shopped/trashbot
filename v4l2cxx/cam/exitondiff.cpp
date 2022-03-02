@@ -28,7 +28,7 @@ void callback_stdout_pipe(uint8_t *p_data, size_t len) {
 int main() {
     
     // std::cout << "Starting Camera..." << std::endl;
-    capture cap("/dev/video0", 640,480,pixel_format ::V4L2CXX_PIX_FMT_YUYV,callback_stdout_pipe);
+    capture cap("/dev/video1", 640,480,pixel_format ::V4L2CXX_PIX_FMT_YUYV,callback_stdout_pipe);
     cap.run();
 
     }
