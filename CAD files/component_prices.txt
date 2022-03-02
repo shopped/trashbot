@@ -1,0 +1,22 @@
+30Ah Power Bank - $30 (started with 10Ah, swapping to this for all day battery was so good)
+Battery Holder - $3
+4x 1.5V Rechargable AA Battery - $5.37
+4x PETG Sheets - $6.80
+Harbor Freight 36in Pickup and Reach Tool - $3
+2x Ikea Variera - $8 (had these lying around, designing around these was a mistake)
+Cable Protector - $10
+
+Polulu Micro Maestro PWM Controller - $20 (not necessary)
+Hall Effect Sensor - $1.75
+Motor + Wheel x2 - $9 (should upgrade to take it outside and for faster motion)
+DRV8833 Motor Controller - $5
+? Voltage Level Shifter - $4 (not necessary if I used different components)
+2x NeoPixel RGB Strip - $12.40
+MG996R Servo - $3.50
+4x Red Arcade Buttons - $10
+
+Raspberry Pi 3B+ - $35 (A Pi4 would be a lot better/faster but they're all sold out)
+ArduCam 5MP MIPI - $14
+ELP 170 Degree 1.3MP USB Camera - $45 (downscaling/cropping this. A $10 camera would do)
+
+Plus additional Cables, Wires, Nuts/Bolts, 3d Printing, Wood...

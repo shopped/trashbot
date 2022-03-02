@@ -1,0 +1,52 @@
+# Instance Install Notes, for setting up hardware
+
+public.ecr.aws/habanalabs/tensorflow-installer:2.7.1-ubuntu20.04-1.3.0-latest
+docker pull public.ecr.aws/habanalabs/pytorch-installer:1.10.0-ubuntu20.04-1.2.0-585
+
+docker run -itd --runtime=habana -e HABANA_VISIBLE_DEVICES=all -e OMPI_MCA_btl_vader_single_copy_mechanism=none --cap-add=sys_nice --net=host \ 
+--ipc=host public.ecr.aws/habanalabs/pytorch-installer:1.10.0-ubuntu20.04-1.2.0-585 \
+--mount source=/data,target=/data
+
+# Machine Learning Model notes on Habana Gaudi
+
+git clone -b 1.3.0 https://github.com/HabanaAI/Model-References.git
+
+cat labels.txt | awk '{PRINT $2}' > /data/train/synset_labels.txt
+
+change TensorFlow/computer_vision/common/imagenet_preprocessing.py
+
+NUM_CLASSES
+NUM_IMAGES
+_NUM_TRAIN_FILES
+_SHUFFLE_BUFFER
+
+Modify last layer into layers.dense(1001)
+Add layers.Dense(num_classes)
+num_classes are 2 but 3, imagenet has a noise class this would be helpful
+Check your architecture with...
+tf.keras.models.load_model(saved_model.pb)
+model.summary('.')
+
+resnet50 model
+wget https://tfhub.dev/tensorflow/resnet_50/classification/1?tf-hub-format=compressed
+tar xzf
+
+tiny imagenet is 32x32 200 classes
+wget http://cs231n.stanford.edu/tiny-imagenet-200.zip
+
+# Misc Software/Data Notes
+
+do not have a requirements.txt, can/will update when i run another instance
+not sure if c++ build can be cross platform so make sure you run cmake --build . on checkout
+perhaps integrate with TOCO, not classification they have segmentation maps and a tool/automated collection pipeline...
+but they are open source and you can 10x their data with what you already built (they only have a few hundred images)
+
+# Misc Hardware Notes
+
+Biggest flaw is the size, should be bigger for bigger trash items
+I would also have to empty it less often with a bigger container
+No gaps for smaller trash and so it can be waterproof / dirt resistant
+The Claw Sensor get unaligned sometimes but is a great feature, a tighter mate would make it a joy to use
+To take it outside, an IMU to detect falls and speaker to announce when lost are easy wins
+You spent a lot of time before realizing that SPI Neopixel communication only works on a certain GPIO port
+Never build on top of an oddly shaped thing again...
